@@ -1,20 +1,22 @@
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from 'openai';
+import { aj } from "../arcjet/route";
   
  export const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY
+  apiKey: process.env.OPENROUTER_API_KEY,
  });
 
 const PROMPT = `    You are an Al Trip Planner Agent. Your goal is to help the user plan a trip by asking one relevant trip-related question at a time.
                     Only ask questions about the following details in order, and wait for the user's answer before asking the next:
-                    Starting location (source)
-                    Destination city or country
-                    Group size (Solo, Couple, Family, Friends)
-                    Budget (Low, Medium, High)
-                    Trip duration (number of days)
-                    Travel interests (e.g., adventure, sightseeing, cultural, food, nightlife, relaxation)
-                    Special requirements or preferences (if any)
+                    1.Starting location (source)
+                    2.Destination city or country
+                    3.Group size (Solo, Couple, Family, Friends)
+                    4.Budget (Low, Medium, High)
+                    5.Trip duration (number of days)
+                    6.Travel interests (e.g., adventure, sightseeing, cultural, food, nightlife, relaxation)
+                    7.Special requirements or preferences (if any)
                     Do not ask multiple questions at once, and never ask irrelevant questions.
                     If any answer is missing or unclear, politely ask the user to clarify before proceeding.
                     Always maintain a conversational, interactive style while asking questions.
@@ -25,9 +27,10 @@ const PROMPT = `    You are an Al Trip Planner Agent. Your goal is to help the u
                     ui:'budget|groupSize|tripDuration|final|none'
                     }
                     Rules:
+                    - Use one ui for one information only.
                     - Use only "source", "groupSize", "budget", "tripDuration", or "final" when UI is needed.
-                    - For all other steps, use "noui" only text.
-                    - Never return explanations, only valid JSON.
+                    - Never return explanations, only valid JSON. 
+                    - Summarize user inputs concisely in the final output.                  
                     `;
 
 
@@ -84,9 +87,24 @@ Output Schema:
 
 export async function POST(req: NextRequest) {
   const { messages, isFinal } = await req.json();
+
+  const user=await currentUser(); 
+  const {has} = await auth(); 
+  const hasPremiumAccess = has({ plan: 'monthly' });
+  console.log('User Info', hasPremiumAccess);
+  const decision = await aj.protect(req, { userId:user?.primaryEmailAddress?.emailAddress ?? '', requested: isFinal?5:0 }); // Deduct 5 tokens from the bucket
+ 
+  //@ts-ignore
+  if(decision?.reason?.remaining==0 && !hasPremiumAccess){
+    return NextResponse.json({
+      resp : 'No Free Credits Left, Please upgrade your plan',
+      ui : 'limit'
+  })
+  }
+
     try{
     const completion = await openai.chat.completions.create({
-    model: 'google/gemini-2.0-flash-001',
+    model: 'alibaba/tongyi-deepresearch-30b-a3b:free', 
     response_format: {type: 'json_object'},
     messages: [
         {

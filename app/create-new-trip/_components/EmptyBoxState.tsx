@@ -1,5 +1,6 @@
 import { suggestions } from '@/app/_components/Hero'
 
+
 function EmptyBoxState({onSelectOption}: any) {
   return (
     <div className='mt-7'>
