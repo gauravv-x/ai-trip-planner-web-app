@@ -1,4 +1,4 @@
-<h1 align="center"># 🌍 AI Trip Planner — Smart AI Travel Assistant</h1>
+<h1 align="center"> 🌍 AI Trip Planner — Smart AI Travel Assistant</h1>
 
 [![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
