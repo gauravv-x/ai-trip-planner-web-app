@@ -61,7 +61,7 @@ This app combines **Gemini/OpenAI**’s intelligence with **Mapbox** visualizati
 
 ```
 ┌─────────────────────┐    ┌──────────────────────┐    ┌───────────────────┐
-│   Frontend (Next.js)│◄──►│   API Routes Layer   │◄──►│   AI Engine (Gemini/OpenAI) │
+│   Frontend (Next.js)│◄──►│   API Routes Layer   │◄──►│ AI Engin (OpenAI) │
 └─────────────────────┘    └──────────────────────┘    └───────────────────┘
            │                            │
            ▼                            ▼
