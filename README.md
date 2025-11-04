@@ -5,7 +5,7 @@
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4+-skyblue.svg)](https://tailwindcss.com/)
 [![Mapbox](https://img.shields.io/badge/Mapbox-Integrated-blue.svg)](https://www.mapbox.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![OpenAI](https://img.shields.io/badge/AI-OpenAI%2FGemini-green.svg)](#)
+[![OpenRouter](https://img.shields.io/badge/AI-OpenAI%2FGemini-green.svg)](#)
 
 > ✈️ **AI Trip Planner** is a conversational web app that helps users plan personalized trips using AI.  
 > It intelligently understands your travel preferences, generates itineraries, and visualizes routes — all on an interactive world map.
