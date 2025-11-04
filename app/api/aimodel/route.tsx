@@ -1,7 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from 'openai';
-import { aj } from "../arcjet/route";
+import { aj } from "@/utils/arcjet";
   
 const openai = new OpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
