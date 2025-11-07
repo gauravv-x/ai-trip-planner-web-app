@@ -189,8 +189,43 @@ function Chatbox() {
           console.error('Save trip detail error', saveErr);
         }
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Send error', err);
+      
+      // Handle API errors - check both axios error format and direct response
+      const errorData = err?.response?.data || err?.data;
+      const errorStatus = err?.response?.status || err?.status;
+      
+      // Handle rate limit errors
+      if (errorStatus === 429 || errorData?.error === 'RATE_LIMIT' || errorData?.ui === 'limit') {
+        const errorMsg = errorData?.resp || 'Rate limit exceeded. Please try again later or add credits to unlock more requests.';
+        const assistantMsg: Message = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: errorMsg,
+          ui: 'limit'
+        };
+        setMessages(prev => {
+          const next = [...prev, assistantMsg];
+          messagesRef.current = next;
+          return next;
+        });
+        scrollToBottom();
+      } else {
+        // Show generic error message
+        const assistantMsg: Message = {
+          id: uuidv4(),
+          role: 'assistant',
+          content: errorData?.resp || 'An error occurred. Please try again.',
+          ui: errorData?.ui || 'none'
+        };
+        setMessages(prev => {
+          const next = [...prev, assistantMsg];
+          messagesRef.current = next;
+          return next;
+        });
+        scrollToBottom();
+      }
     } finally {
       setLoading(false);
     }
@@ -209,6 +244,16 @@ function Chatbox() {
     if (ui === "final") {
       // when user clicks final view, do not auto-send; show final UI button
       return <FinalUI viewTrip={() => console.log("Viewing trip:", tripDetail)} disable={!tripDetail} />;
+    }
+    if (ui === "limit") {
+      return (
+        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <p className="text-yellow-800 font-semibold text-sm">⚠️ Rate Limit Reached</p>
+          <p className="text-yellow-700 text-xs mt-1">
+            You've reached the free tier limit. Please wait a moment or upgrade your plan to continue.
+          </p>
+        </div>
+      );
     }
     return null;
   };
