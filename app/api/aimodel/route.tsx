@@ -2,16 +2,33 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 import { aj } from "@/utils/arcjet";
-  
-// Validate API key on initialization
-if (!process.env.OPENROUTER_API_KEY) {
-  console.error('OPENROUTER_API_KEY is not set in environment variables');
-}
+import { ConvexHttpClient } from "convex/browser";
+import { api } from "@/convex/_generated/api";
 
-const openai = new OpenAI({
-  baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: process.env.OPENROUTER_API_KEY,
-});
+const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+// Function to get dynamic configuration
+async function getOpenRouterConfig() {
+  try {
+    // Try to get config from admin panel (Convex)
+    const config = await convex.query(api.adminConfig.getFullConfig);
+    
+    if (config && config.openrouterApiKey && config.openrouterModel) {
+      return {
+        apiKey: config.openrouterApiKey,
+        model: config.openrouterModel,
+      };
+    }
+  } catch (error) {
+    console.error('Error fetching admin config, falling back to env vars:', error);
+  }
+  
+  // Fall back to environment variables
+  return {
+    apiKey: process.env.OPENROUTER_API_KEY || '',
+    model: process.env.OPENROUTER_MODEL || 'openrouter/polaris-alpha',
+  };
+}
 
 const PROMPT = `You are an AI Trip Planner Agent. Your goal is to help the user plan a trip by asking one relevant trip-related question at a time.
 Only ask questions about the following details in order, and wait for the user's answer before asking the next:
@@ -160,8 +177,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Get dynamic configuration
+    const config = await getOpenRouterConfig();
+    
     // Validate API key
-    if (!process.env.OPENROUTER_API_KEY) {
+    if (!config.apiKey) {
       console.error('OPENROUTER_API_KEY is missing');
       return NextResponse.json(
         { 
@@ -172,6 +192,12 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Create OpenAI client with dynamic config
+    const openai = new OpenAI({
+      baseURL: 'https://openrouter.ai/api/v1',
+      apiKey: config.apiKey,
+    });
 
     // Authentication and authorization
     const user = await currentUser(); 
@@ -224,9 +250,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Call OpenAI API
+    // Call OpenAI API with dynamic model
     const completion = await openai.chat.completions.create({
-      model: 'openrouter/polaris-alpha', 
+      model: config.model, 
       response_format: { type: 'json_object' },
       messages: [systemMessage, ...validMessages],
       temperature: isFinal ? 0.7 : 0.8, // Slightly lower temperature for final plan for consistency

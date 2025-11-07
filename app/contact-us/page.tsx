@@ -203,7 +203,7 @@ export default function Page(): JSX.Element {
 
           <aside style={{ marginTop: 18, padding: 12, borderRadius: 8, background: "#fffaf6", border: `1px solid ${ORANGE}11` }}>
             <h3 style={{ margin: "0 0 6px 0" }}>Other ways to reach us</h3>
-            <p style={{ margin: "6px 0" }}>Phone: <strong>+1 (555) 123-4567</strong></p>
+            <p style={{ margin: "6px 0" }}>Phone: <strong>+91 70434 03193</strong></p>
             <p style={{ margin: "6px 0" }}>Support hours: Mon–Fri, 9am–6pm (local time)</p>
           </aside>
         </main>

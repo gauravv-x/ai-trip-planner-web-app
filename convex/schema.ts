@@ -15,6 +15,14 @@ export default defineSchema({
                 tripId: v.string(),
                 tripDetail: v.any(),
                 uid : v.id('UserTable')
+    }),
+
+    AdminConfigTable:defineTable({
+                openrouterModel: v.string(),
+                openrouterApiKey: v.string(),
+                adminEmails: v.array(v.string()),
+                updatedAt: v.number(),
+                updatedBy: v.string(),
     })
 
 })
