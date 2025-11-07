@@ -27,7 +27,6 @@ const PROMPT = `    You are an Al Trip Planner Agent. Your goal is to help the u
                     ui:'budget|groupSize|tripDuration|final|none'
                     }
                     Rules:
-                    - Use one ui for one information only.
                     - Use only "source", "groupSize", "budget", "tripDuration", or "final" when UI is needed.
                     - Never return explanations, only valid JSON. 
                     - Summarize user inputs concisely in the final output.                  
@@ -104,7 +103,7 @@ export async function POST(req: NextRequest) {
 
     try{
     const completion = await openai.chat.completions.create({
-    model: 'alibaba/tongyi-deepresearch-30b-a3b:free', 
+    model: 'z-ai/glm-4.5-air:free', 
     response_format: {type: 'json_object'},
     messages: [
         {
