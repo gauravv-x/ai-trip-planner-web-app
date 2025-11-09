@@ -12,17 +12,16 @@ export async function GET(req: NextRequest) {
     
     const config = await convex.query(api.adminConfig.getFullConfig);
     
-    // If no config in DB, fall back to env vars
-    if (!config) {
-      return NextResponse.json({
-        openrouterModel: process.env.OPENROUTER_MODEL || "openrouter/polaris-alpha",
-        openrouterApiKey: process.env.OPENROUTER_API_KEY || "",
-      });
-    }
+    // If no config in DB, fall back to env vars for required fields
+    const fallbackConfig = {
+      openrouterModel: process.env.OPENROUTER_MODEL || "openrouter/polaris-alpha",
+      openrouterApiKey: process.env.OPENROUTER_API_KEY || "",
+    };
 
+    // Return the entire config object, merging with fallbacks
     return NextResponse.json({
-      openrouterModel: config.openrouterModel,
-      openrouterApiKey: config.openrouterApiKey,
+      ...fallbackConfig,
+      ...(config || {}),
     });
   } catch (error: any) {
     console.error("Error fetching config:", error);

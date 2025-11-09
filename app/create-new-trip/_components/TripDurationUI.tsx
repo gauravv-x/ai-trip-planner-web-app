@@ -12,26 +12,26 @@ export function TripDurationUI({ onSelectedOption }: { onSelectedOption: (v: str
   };
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 mt-2 p-4 border rounded-2xl bg-white">
-      <h2 className="text-lg font-bold text-center">Select Trip Duration</h2>
+    <div className="flex flex-col items-center justify-center gap-3 sm:gap-4 mt-2 p-3 sm:p-4 border rounded-xl sm:rounded-2xl bg-white">
+      <h2 className="text-base sm:text-lg font-bold text-center">Select Trip Duration</h2>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6">
         {/* Decrement button */}
         <Button
           variant="outline"
-          className="rounded-full h-10 w-10 text-xl font-bold hover:border-primary hover:text-primary"
+          className="rounded-full h-9 w-9 sm:h-10 sm:w-10 text-lg sm:text-xl font-bold hover:border-primary hover:text-primary"
           onClick={decrement}
         >
           –
         </Button>
 
         {/* Days counter */}
-        <span className="text-2xl font-bold">{days} Days</span>
+        <span className="text-xl sm:text-2xl font-bold min-w-[80px] text-center">{days} Days</span>
 
         {/* Increment button */}
         <Button
           variant="outline"
-          className="rounded-full h-10 w-10 text-xl font-bold hover:border-primary hover:text-primary"
+          className="rounded-full h-9 w-9 sm:h-10 sm:w-10 text-lg sm:text-xl font-bold hover:border-primary hover:text-primary"
           onClick={increment}
         >
           +
@@ -41,7 +41,7 @@ export function TripDurationUI({ onSelectedOption }: { onSelectedOption: (v: str
       {/* Confirm button */}
       <Button
         onClick={handleConfirm}
-        className="mt-2 bg-primary text-white rounded-xl px-6 py-2"
+        className="mt-1 sm:mt-2 bg-primary text-white rounded-lg sm:rounded-xl px-4 sm:px-6 py-2 text-sm sm:text-base w-full sm:w-auto"
       >
         Confirm
       </Button>

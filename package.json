@@ -23,11 +23,12 @@
     "mapbox-gl": "^3.16.0",
     "motion": "^12.23.12",
     "next": "15.4.4",
-    "openai": "^5.16.0",
+    "openai": "^6.0.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tailwind-merge": "^3.3.1",
-    "uuid": "^11.1.0"
+    "uuid": "^11.1.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -41,3 +42,4 @@
     "typescript": "^5"
   }
 }
+

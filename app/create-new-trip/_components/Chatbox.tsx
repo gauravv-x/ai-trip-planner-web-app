@@ -173,15 +173,20 @@ function Chatbox() {
         scrollToBottom();
       }
 
+      // Update trip details if a partial or final plan is received
+      const plan = result.data.trip_plan || result.data.partial_trip_plan;
+      if (plan) {
+        const tripPlan = plan as TripInfo;
+        setTripDetail(tripPlan);
+        setTripDetailInfo?.(tripPlan);
+      }
+
       // when final, save trip details
       if (finalFlag && result?.data?.trip_plan) {
-        const plan = result.data.trip_plan as TripInfo;
-        setTripDetail(plan);
-        setTripDetailInfo?.(plan);
         const tripId = uuidv4();
         try {
           await SaveTripDetail({
-            tripDetail: plan,
+            tripDetail: result.data.trip_plan as TripInfo,
             tripId,
             uid: userDetail?._id
           });
@@ -270,41 +275,41 @@ function Chatbox() {
   }, [messages.length]);
 
   return (
-    <div className='h-[85vh] flex flex-col border shadow rounded-2xl p-5'>
+    <div className='h-[85vh] sm:h-[85vh] flex flex-col border shadow rounded-lg sm:rounded-2xl p-3 sm:p-5'>
       {messages.length === 0 &&
         <EmptyBoxState onSelectOption={(v: string) => { setUserInput(v); onsend(v); }} />
       }
 
       {/* Display Section  */}
-      <section ref={containerRef} className='flex-1 overflow-y-auto p-4'>
+      <section ref={containerRef} className='flex-1 overflow-y-auto p-2 sm:p-4'>
         {messages.map((msg) => (
           msg.role === 'user' ?
             <div className="flex justify-end mt-2" key={msg.id}>
-              <div className="max-w-lg bg-primary text-white px-4 py-2 rounded-lg shadow">
+              <div className="max-w-[85%] sm:max-w-lg bg-primary text-white px-3 sm:px-4 py-2 rounded-lg shadow text-sm sm:text-base">
                 {msg.content}
               </div>
             </div>
             :
             <div className="flex justify-start mt-2" key={msg.id}>
-              <div className="max-w-lg bg-gray-100 text-black px-4 py-2 rounded-lg shadow">
+              <div className="max-w-[85%] sm:max-w-lg bg-gray-100 text-black px-3 sm:px-4 py-2 rounded-lg shadow text-sm sm:text-base">
                 {msg.content}
                 {RenderGenerativeUi(msg.ui ?? '')}
               </div>
             </div>
         ))}
         {loading && <div className='flex justify-start mt-2'>
-          <div className='max-w-lg bg-gray-100 text-black px-4 py-2 rounded-lg'>
-            <Loader className="animate-spin" />
+          <div className='max-w-[85%] sm:max-w-lg bg-gray-100 text-black px-3 sm:px-4 py-2 rounded-lg'>
+            <Loader className="animate-spin h-4 w-4 sm:h-5 sm:w-5" />
           </div>
         </div>}
       </section>
 
       {/* User Input Section */}
-      <section className="p-4 bg-white border-t sticky bottom-0">
+      <section className="p-2 sm:p-4 bg-white border-t sticky bottom-0 rounded-b-lg sm:rounded-b-2xl">
         <div className="flex items-end gap-2">
           <Textarea
             placeholder="Start typing here..."
-            className="flex-1 min-h-[60px] max-h-[120px] resize-none rounded-xl"
+            className="flex-1 min-h-[50px] sm:min-h-[60px] max-h-[120px] resize-none rounded-lg sm:rounded-xl text-sm sm:text-base"
             onChange={(event) => setUserInput(event.target.value)}
             onKeyDown={handleKeyDown}
             value={userInput}
@@ -313,11 +318,11 @@ function Chatbox() {
           />
           <Button
             size={"icon"}
-            className="rounded-full bg-primary text-white transition-transform active:scale-90"
+            className="rounded-full bg-primary text-white transition-transform active:scale-90 h-10 w-10 sm:h-11 sm:w-11 shrink-0"
             onClick={(e) => { e.preventDefault(); onsend(); }}
             disabled={loading}
           >
-            {loading ? <Loader className="animate-spin h-5 w-5" /> : <Send className="h-5 w-5" />}
+            {loading ? <Loader className="animate-spin h-4 w-4 sm:h-5 sm:w-5" /> : <Send className="h-4 w-4 sm:h-5 sm:w-5" />}
           </Button>
         </div>
       </section>

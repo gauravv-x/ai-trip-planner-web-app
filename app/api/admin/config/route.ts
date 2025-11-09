@@ -1,133 +1,154 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
+import { NextResponse } from "next/server";
 import { api } from "@/convex/_generated/api";
+import { fetchMutation, fetchQuery } from "convex/nextjs";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
-// Check if user is admin (you can customize this logic)
-async function isAdmin(): Promise<boolean> {
-  const user = await currentUser();
-  if (!user) return false;
-
-  const userEmail = user.primaryEmailAddress?.emailAddress;
-  if (!userEmail) return false;
-
+// Helper function to check if user is admin
+async function isAdmin(): Promise<{ isAdmin: boolean; email?: string }> {
   try {
-    // First, try to get admin emails from database
-    const config = await convex.query(api.adminConfig.getConfig);
-    const adminEmails = config?.adminEmails || [];
+    const { userId, sessionClaims } = await auth();
     
-    // If database has admin emails configured, use them as the source of truth
-    if (adminEmails.length > 0) {
-      return adminEmails.includes(userEmail);
+    if (!userId) {
+      return { isAdmin: false };
     }
+
+    // Try multiple ways to get email
+    let email: string | undefined = 
+      sessionClaims?.email_address as string | undefined ||
+      sessionClaims?.email as string | undefined;
+    
+    // If not in sessionClaims, try getting from currentUser
+    if (!email) {
+      try {
+        const user = await currentUser();
+        email = user?.primaryEmailAddress?.emailAddress || 
+                user?.emailAddresses?.[0]?.emailAddress;
+      } catch (userError) {
+        console.warn("Could not get user email:", userError);
+      }
+    }
+
+    if (!email) {
+      console.warn("No email found for user:", userId);
+      return { isAdmin: false };
+    }
+
+    // Check against environment variable first
+    const adminEmailsEnv = process.env.ADMIN_EMAILS;
+    if (adminEmailsEnv) {
+      const adminEmailsList = adminEmailsEnv.split(',').map(e => e.trim().toLowerCase());
+      if (adminEmailsList.includes(email.toLowerCase())) {
+        return { isAdmin: true, email };
+      }
+    }
+
+    // Check against stored admin emails in database
+    try {
+      const config = await fetchQuery((api as any).adminConfig.getConfig, {});
+      if (config?.adminEmails && Array.isArray(config.adminEmails)) {
+        const adminEmailsList = config.adminEmails.map((e: string) => e.toLowerCase());
+        if (adminEmailsList.includes(email.toLowerCase())) {
+          return { isAdmin: true, email };
+        }
+      }
+    } catch (dbError) {
+      console.warn("Error checking admin emails from database:", dbError);
+    }
+
+    // Check Clerk metadata as fallback
+    try {
+      const user = await currentUser();
+      if (user?.publicMetadata?.role === 'admin') {
+        return { isAdmin: true, email };
+      }
+    } catch (metaError) {
+      console.warn("Error checking metadata:", metaError);
+    }
+
+    return { isAdmin: false, email };
   } catch (error) {
-    console.error("Error checking admin from database:", error);
+    console.error("Error checking admin access:", error);
+    return { isAdmin: false };
   }
-
-  // Fallback to environment variable if database has no admin emails or check fails
-  const envAdminEmails = process.env.ADMIN_EMAILS?.split(",").map(e => e.trim()).filter(e => e) || [];
-  if (envAdminEmails.includes(userEmail)) {
-    return true;
-  }
-
-  return false;
 }
 
-// GET - Get current configuration
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     // Check admin access
-    const admin = await isAdmin();
-    if (!admin) {
+    const adminCheck = await isAdmin();
+    if (!adminCheck.isAdmin) {
       return NextResponse.json(
-        { error: "Unauthorized. Admin access required." },
+        { 
+          error: "Unauthorized",
+          message: adminCheck.email 
+            ? `Email ${adminCheck.email} is not authorized. Please add it to ADMIN_EMAILS environment variable or contact an administrator.`
+            : "You must be signed in to access the admin panel."
+        },
         { status: 403 }
       );
     }
 
-    const config = await convex.query(api.adminConfig.getConfig);
-    
-    return NextResponse.json(config);
+    const config = await fetchQuery((api as any).adminConfig.getConfig, {});
+    // Return the entire config object, falling back to environment variables if empty
+    return NextResponse.json(config || {
+      openrouterModel: process.env.OPENROUTER_MODEL,
+      openrouterApiKey: "", // Don't expose key
+      adminEmails: process.env.ADMIN_EMAILS?.split(',').map(e => e.trim()) || [],
+    });
   } catch (error: any) {
     console.error("Error fetching admin config:", error);
     return NextResponse.json(
-      { error: "Failed to fetch configuration", details: error.message },
+      { error: "Failed to fetch admin config", details: error.message },
       { status: 500 }
     );
   }
 }
 
-// POST - Update configuration
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     // Check admin access
-    const admin = await isAdmin();
-    if (!admin) {
-      return NextResponse.json(
-        { error: "Unauthorized. Admin access required." },
-        { status: 403 }
-      );
+    const adminCheck = await isAdmin();
+    if (!adminCheck.isAdmin || !adminCheck.email) {
+      return NextResponse.json({ 
+        error: "Unauthorized",
+        message: adminCheck.email 
+          ? `Email ${adminCheck.email} is not authorized. Please add it to ADMIN_EMAILS environment variable.`
+          : "You must be signed in to access the admin panel."
+      }, { status: 403 });
     }
 
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    }
     const body = await req.json();
-    const { openrouterModel, openrouterApiKey, adminEmails } = body;
+    const { adminEmails, openrouterApiKey, openrouterModel } = body;
 
-    // Validation
-    if (!openrouterModel || typeof openrouterModel !== "string") {
+    // ✅ Manual validation: Ensure body is a non-null object
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return NextResponse.json(
-        { error: "openrouterModel is required and must be a string" },
+        { error: "Invalid configuration data provided" },
         { status: 400 }
       );
     }
 
-    // Validate adminEmails if provided
-    if (adminEmails !== undefined) {
-      if (!Array.isArray(adminEmails)) {
-        return NextResponse.json(
-          { error: "adminEmails must be an array" },
-          { status: 400 }
-        );
+    // ✅ Use validated body as generic configData
+    const updatedConfig = await fetchMutation(
+      (api as any).adminConfig.updateConfig,
+      {
+        adminEmails: adminEmails,
+        openrouterApiKey: openrouterApiKey,
+        openrouterModel: openrouterModel,
+        updatedBy: adminCheck.email,
       }
-      // Validate each email
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      for (const email of adminEmails) {
-        if (typeof email !== "string" || !emailRegex.test(email.trim())) {
-          return NextResponse.json(
-            { error: `Invalid email format: ${email}` },
-            { status: 400 }
-          );
-        }
-      }
-    }
+    );
 
-    // API key is optional - if empty, we'll keep the existing one
-    const apiKeyToUpdate = openrouterApiKey && typeof openrouterApiKey === "string" && openrouterApiKey.trim() !== ""
-      ? openrouterApiKey
-      : undefined;
-
-    const user = await currentUser();
-    const updatedBy = user?.primaryEmailAddress?.emailAddress || user?.id || "unknown";
-
-    // Update configuration
-    await convex.mutation(api.adminConfig.updateConfig, {
-      openrouterModel,
-      openrouterApiKey: apiKeyToUpdate,
-      adminEmails: adminEmails !== undefined ? adminEmails.map((e: string) => e.trim()) : undefined,
-      updatedBy,
-    });
-
-    return NextResponse.json({ 
-      success: true, 
-      message: "Configuration updated successfully" 
-    });
+    return NextResponse.json(updatedConfig);
   } catch (error: any) {
     console.error("Error updating admin config:", error);
     return NextResponse.json(
-      { error: "Failed to update configuration", details: error.message },
+      { error: error.message || "Failed to update admin config" },
       { status: 500 }
     );
   }
 }
-

@@ -32,11 +32,11 @@ function ViewTrip()
     }
 
   return (
-    <div className='grid grid-cols-5'>
-      <div className='col-span-3'>
+    <div className='grid grid-cols-1 md:grid-cols-5 gap-4 md:gap-0'>
+      <div className='md:col-span-3 order-2 md:order-1'>
         <Itinerary />
       </div>
-      <div className='col-span-2'>
+      <div className='md:col-span-2 order-1 md:order-2 min-h-[400px] md:min-h-auto'>
         <GlobleMap/> 
       </div>
     </div>

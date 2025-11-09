@@ -27,15 +27,15 @@ export const SelectBudgetOptions = [
 
 function BudgetUI({onSelectedOption}: any) {
   return (
-     <div className='grid grid-cols-3 md:grid-cols-3 gap-2 items-center mt-1'>
+     <div className='grid grid-cols-3 gap-2 sm:gap-3 items-center mt-1'>
           {SelectBudgetOptions.map((item, index) => (
-            <div key={index} className='p-3 border rounded-2xl bg-white hover:border-primary 
-            cursor-pointer flex flex-col items-center text-center'
+            <div key={index} className='p-2 sm:p-3 border rounded-xl sm:rounded-2xl bg-white hover:border-primary 
+            cursor-pointer flex flex-col items-center text-center transition-all'
             onClick={() => onSelectedOption(item.title+':'+item.desc)}
             >
-                <div className={`text-3xl p-3 rounded-full ${item.color}`}>{item.icon}</div>
-              <h2 className='text-lg font-semibold mt-2'> {item.title}</h2>
-              <p className='text-sm text-gray-500'>{item.desc}</p>
+                <div className={`text-2xl sm:text-3xl p-2 sm:p-3 rounded-full ${item.color}`}>{item.icon}</div>
+              <h2 className='text-sm sm:text-base md:text-lg font-semibold mt-1 sm:mt-2'> {item.title}</h2>
+              <p className='text-xs sm:text-sm text-gray-500 hidden sm:block'>{item.desc}</p>
             </div>
           ))}
         </div>

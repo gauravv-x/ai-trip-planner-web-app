@@ -171,42 +171,64 @@ function Itinerary() {
     tripDetailInfo&& setTripData(tripDetailInfo);
   },[tripDetailInfo]) 
 
-  const data = tripData?[
-    {
+  const data = [];
+
+  if (tripData?.hotels && tripData.hotels.length > 0) {
+    data.push({
       title: "Hotels",
       content: (
-        <div className='grid grid-cols-2 md:grid-cols-2 gap-4'>
-          {tripData?.hotels.map((hotel, index) => (
-            <HotelCardItem hotel={hotel}/>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
+          {tripData.hotels.map((hotel, index) => (
+            <HotelCardItem key={index} hotel={hotel}/>
           ))}
         </div>
       ),
-    },
-    ...tripData?.itinerary.map((dayData)=>({
-        title:`Day ${dayData?.day}`,
-        content:(
-            <div>
-                <p className="p-2 text-xl font-bold text-primary md-2px">Best Time:{dayData?.best_time_to_visit_day}</p>
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                    {dayData.activities.map((activity,index)=>(
-                    <PlaceCardItem activity={activity} /> 
+    });
+  } else if (tripData?.destination && !tripData?.hotels) {
+    data.push({
+      title: "Hotels",
+      content: (
+        <div className='p-4 text-gray-500 italic'>
+          Hotels are being planned...
+        </div>
+      ),
+    });
+  }
 
-                ))
-    }
-                
-                </div>
+  if (tripData?.itinerary && tripData.itinerary.length > 0) {
+    tripData.itinerary.forEach((dayData) => {
+      data.push({
+        title: `Day ${dayData?.day}`,
+        content: (
+          <div>
+            <p className="p-2 text-base sm:text-lg md:text-xl font-bold text-primary mb-2">Best Time: {dayData?.best_time_to_visit_day}</p>
+            <div className='grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4'>
+              {dayData.activities.map((activity, index) => (
+                <PlaceCardItem key={index} activity={activity} />
+              ))}
             </div>
-        )  
-    }))
-  ]:[];
+          </div>
+        ),
+      });
+    });
+  } else if (tripData?.destination && !tripData?.itinerary) {
+    data.push({
+      title: "Itinerary",
+      content: (
+        <div className='p-4 text-gray-500 italic'>
+          Itinerary is being planned...
+        </div>
+      ),
+    });
+  }
+
   return (
-    <div className="relative w-full h-[83vh] overflow-auto">
+    <div className="relative w-full h-[70vh] sm:h-[75vh] md:h-[83vh] overflow-auto px-2 sm:px-4">
        {tripData ? <Timeline data={data} tripData={tripData} />
        :
-      // empty space filling by image 
-      <div className='w-full h-full flex flex-col justify-center items-center relative'> 
-       <Image src={'/travel.png'} alt='travel.png' width={800} height={800} className='w-full h-full object-cover rounded-3xl' />
-       <h2 className='flex gap-2 text-3xl text-white left-20 items-center absolute bottom-20'><ArrowLeft/> Getting to know you to build perfect trip here...</h2>
+      <div className='w-full h-full flex flex-col justify-center items-center relative'>
+       <Image src={'/travel.png'} alt='travel.png' width={800} height={800} className='w-full h-full object-cover rounded-2xl sm:rounded-3xl' />
+       <h2 className='flex gap-2 text-lg sm:text-xl md:text-2xl lg:text-3xl text-white left-4 sm:left-8 md:left-20 items-center absolute bottom-8 sm:bottom-12 md:bottom-20 px-2'><ArrowLeft className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8"/> <span className="hidden sm:inline">Getting to know you to build perfect trip here...</span><span className="sm:hidden">Building your perfect trip...</span></h2>
        </div>
        }
     </div>

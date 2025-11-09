@@ -18,11 +18,12 @@ export default defineSchema({
     }),
 
     AdminConfigTable:defineTable({
-                openrouterModel: v.string(),
-                openrouterApiKey: v.string(),
-                adminEmails: v.array(v.string()),
-                updatedAt: v.number(),
-                updatedBy: v.string(),
+                 configData: v.optional(v.any()), // Generic configuration object
+                 adminEmails: v.optional(v.array(v.string())),
+                 openrouterApiKey: v.optional(v.string()),
+                 openrouterModel: v.optional(v.string()),
+                 updatedAt: v.number(),
+                 updatedBy: v.string(),
     })
 
 })

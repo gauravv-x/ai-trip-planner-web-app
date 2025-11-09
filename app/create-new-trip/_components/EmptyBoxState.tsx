@@ -12,7 +12,7 @@ function EmptyBoxState({onSelectOption}: any) {
                     {suggestions.map((suggestion, index) => (
                         <div key={index} 
                         onClick={()=>onSelectOption(suggestion.title)}
-                            className="flex items-center gap-2 p-3 border rounded-xl cursor-pointer hover:border-primary hover:text-primary"
+                            className="flex items-center gap-3 p-4 border border-gray-200 rounded-2xl cursor-pointer transition-all duration-200 hover:border-primary hover:text-primary hover:bg-primary/5 shadow-sm hover:shadow-md"
                         >
                             {suggestion.icon}
                             <h2 className='text-lg'>{suggestion.title}</h2>

@@ -26,8 +26,8 @@ export default function RootLayout({
 <ClerkProvider>
     <html lang="en">
       <body
-        className={outfit.className}
-        suppressHydrationWarning={true} 
+        className={`${outfit.className} dark:bg-gray-950`}
+        suppressHydrationWarning={true}
       >
         <ConvexClientProvider>
           {children}

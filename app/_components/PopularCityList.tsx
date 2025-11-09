@@ -9,9 +9,9 @@ export function PopularCityList() {
   ));
 
   return (
-    <div className="w-full h-full py-12">
-      <h2 className="max-w-7xl pl-4 mx-auto text-xl md:text-3xl font-bold text-neutral-800 dark:text-neutral-200 font-sans">
-        Get to know your iSad. </h2>
+    <div className="w-full h-full py-6 sm:py-8 md:py-12 px-2 sm:px-4">
+      <h2 className="max-w-7xl pl-2 sm:pl-4 mx-auto text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold text-neutral-800 dark:text-neutral-200 font-sans mb-4 sm:mb-6">
+        Popular Destinations </h2>
       <Carousel items={cards} />
     </div>
   );
@@ -20,9 +20,9 @@ export function PopularCityList() {
 /* ✅ Real and beautiful travel destinations with short introductions */
 const DummyContent = ({ title, description, img }: any) => {
   return (
-    <div className="bg-[#F5F5F7] dark:bg-neutral-800 p-8 md:p-12 rounded-3xl mb-4 text-center">
-      <h3 className="text-2xl font-bold text-neutral-800 dark:text-neutral-200 mb-3">{title}</h3>
-      <p className="text-neutral-600 dark:text-neutral-400 text-base md:text-lg mb-4 max-w-3xl mx-auto">
+    <div className="bg-[#F5F5F7] dark:bg-neutral-800 p-4 sm:p-6 md:p-8 lg:p-12 rounded-2xl sm:rounded-3xl mb-4 text-center">
+      <h3 className="text-xl sm:text-2xl font-bold text-neutral-800 dark:text-neutral-200 mb-2 sm:mb-3">{title}</h3>
+      <p className="text-neutral-600 dark:text-neutral-400 text-sm sm:text-base md:text-lg mb-3 sm:mb-4 max-w-3xl mx-auto px-2">
         {description}
       </p>
       <img
@@ -30,7 +30,7 @@ const DummyContent = ({ title, description, img }: any) => {
         alt="Image not found" 
         height="500"
         width="500"
-        className="rounded-2xl mx-auto object-cover shadow-md md:w-[70%] w-full h-auto"
+        className="rounded-xl sm:rounded-2xl mx-auto object-cover shadow-md md:w-[70%] w-full h-auto"
       />
     </div>
   );

@@ -69,7 +69,7 @@ export default function Page(): JSX.Element {
   }
 
   return (
-    <section style={{ maxWidth: 900, margin: "2rem auto", padding: "1.25rem", fontFamily: "Inter, system-ui, sans-serif" }}>
+    <section style={{ maxWidth: 900, margin: "1rem auto", padding: "1rem 1.25rem", fontFamily: "Inter, system-ui, sans-serif" }}>
       <div
         style={{
           background: WHITE,
@@ -181,7 +181,7 @@ export default function Page(): JSX.Element {
                 {submitting ? "Sending..." : "Send Message"}
               </button>
 
-              <div style={{ color: "#666", fontSize: 14 }}>Or email <a href="mailto:support@example.com" style={{ color: ORANGE, textDecoration: "underline" }}>support@example.com</a></div>
+              <div style={{ color: "#666", fontSize: 14 }}>Or email <a href="mailto:gauravakbari007@gmail.com" style={{ color: ORANGE, textDecoration: "underline" }}>gauravakbari007@gmail.com</a></div>
             </div>
 
             {statusMsg && (

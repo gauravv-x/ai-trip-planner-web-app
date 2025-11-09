@@ -46,3 +46,37 @@ export const GetTripById=query({
 
 })
 
+
+
+export const getTotalTrips = query({
+    handler: async (ctx) => {
+        const trips = await ctx.db.query('TripDetailTable').collect();
+        return trips.length;
+    },
+});
+
+export const getTrips = query({
+    args: {
+        cursor: v.optional(v.string()),
+        limit: v.optional(v.number()),
+    },
+    handler: async (ctx, args) => {
+        const paginationOptions = {
+            cursor: args.cursor || null,
+            numItems: args.limit || 10,
+            order: 'desc', // Order by creation time, newest first
+        };
+        return await ctx.db.query('TripDetailTable')
+            .order('desc')
+            .paginate(paginationOptions);
+    },
+});
+
+        export const deleteTrip = mutation({
+            args: {
+                id: v.id('TripDetailTable'),
+            },
+            handler: async (ctx, args) => {
+                await ctx.db.delete(args.id);
+            },
+        });

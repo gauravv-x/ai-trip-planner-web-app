@@ -5,7 +5,7 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer className="w-full border-t bg-white dark:bg-gray-950">
-      <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center sm:text-left">
+      <div className="max-w-6xl mx-auto px-4 py-8 sm:px-6 sm:py-10 grid grid-cols-1 sm:grid-cols-3 gap-8 text-center sm:text-left">
         {/* About Section */}
         <div>
           <h3 className="text-xl font-semibold mb-3">AI Trip Planner</h3>
@@ -48,7 +48,7 @@ export default function Footer() {
       </div>
 
       {/* Copyright Bar */}
-      <div className="border-t py-4 text-center text-sm text-gray-600 dark:text-gray-400">
+      <div className="border-t py-3 sm:py-4 text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400">
         © {new Date().getFullYear()} <span className="font-semibold text-primary">Gaurav Akbari</span>. All rights reserved.
       </div>
     </footer>
