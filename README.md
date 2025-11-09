@@ -89,8 +89,13 @@ npm install
 Create a `.env.local` file in the root:  
 ```env
 NEXT_PUBLIC_MAPBOX_API_KEY=your_mapbox_api_key
-OPENAI_API_KEY=your_openai_api_key
+OPENROUTER_MODEL=your_model_name
 NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
+GOOGLE_PLACE_API_KEY=your_googleplace_api_key
+ARCJET_KEY=your_arcject_api_key
+CLERK_SECRET_KEY=your_clark_key
+OPENROUTER_API_KEY=openrouter_api_key
+NEXT_PUBLIC_CONVEX_URL=your_convex_api_key
 ```
 
 ### 4️⃣ Run the Development Server  
