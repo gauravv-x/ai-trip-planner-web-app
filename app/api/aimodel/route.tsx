@@ -11,8 +11,9 @@ const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 async function getOpenRouterConfig() {
   try {
     // Try to get config from admin panel (Convex)
-    const config = await convex.query(api.adminConfig.getFullConfig);
-    
+    // @ts-ignore adminConfig may not be declared yet in api
+    const config = await convex.query((api as any).adminConfig?.getFullConfig);
+
     if (config && config.openrouterApiKey && config.openrouterModel) {
       return {
         apiKey: config.openrouterApiKey,
@@ -26,7 +27,7 @@ async function getOpenRouterConfig() {
   // Fall back to environment variables
   return {
     apiKey: process.env.OPENROUTER_API_KEY || '',
-    model: process.env.OPENROUTER_MODEL || 'openrouter/polaris-alpha',
+    model: process.env.OPENROUTER_MODEL,
   };
 }
 
@@ -44,13 +45,22 @@ Do not ask multiple questions at once, and never ask irrelevant questions.
 If any answer is missing or unclear, politely ask the user to clarify before proceeding.
 Always maintain a conversational, interactive style while asking questions.
 
-Along with response also send which UI component to display for generative UI. For example: 'budget', 'groupSize', 'tripDuration', 'final', or 'none'. 
+Along with response also send which UI component to display for generative UI. For example: 'budget', 'groupSize', 'tripDuration', 'final', or 'none'.
 Where 'final' means AI is generating complete final output.
+
+If you have gathered enough information (e.g., destination, duration, budget) but are not yet in the final state, you MUST include a 'partial_trip_plan' object in the response, containing the current known trip details (destination, duration, budget, group_size, origin). This allows the user to see the plan forming in real-time.
 
 Once all required information is collected, generate and return a strict JSON response only (no explanations or extra text) with following strictly JSON only schema:
 {
   "resp": "Text Response",
-  "ui": "budget|groupSize|tripDuration|final|none"
+  "ui": "budget|groupSize|tripDuration|final|none",
+  "partial_trip_plan": {
+    "destination": "string",
+    "duration": "string",
+    "origin": "string",
+    "budget": "string",
+    "group_size": "string"
+  } // Optional, but required if enough info is gathered before final state.
 }
 
 Rules:
@@ -199,26 +209,42 @@ export async function POST(req: NextRequest) {
       apiKey: config.apiKey,
     });
 
-    // Authentication and authorization
-    const user = await currentUser(); 
-    const { has } = await auth(); 
-    const hasPremiumAccess = has({ plan: 'monthly' });
+    // Authentication and authorization - handle missing user gracefully
+    let user = null;
+    let hasPremiumAccess = false;
+    let userEmail = '';
+    
+    try {
+      user = await currentUser();
+      const { has } = await auth();
+      hasPremiumAccess = has({ plan: 'monthly' });
+      userEmail = user?.primaryEmailAddress?.emailAddress ?? user?.emailAddresses?.[0]?.emailAddress ?? '';
+    } catch (authError) {
+      // If auth fails, continue with anonymous user
+      console.warn('Auth check failed, continuing with anonymous user:', authError);
+    }
     
     console.log('User Info', { 
-      userId: user?.id, 
-      email: user?.primaryEmailAddress?.emailAddress,
+      userId: user?.id ?? 'anonymous', 
+      email: userEmail || 'no-email',
       hasPremiumAccess 
     });
 
-    // Rate limiting
-    const decision = await aj.protect(req, { 
-      userId: user?.primaryEmailAddress?.emailAddress ?? '', 
-      requested: isFinal ? 5 : 0 
-    });
+    // Rate limiting - use email or fallback to IP-based identification
+    let decision = null;
+    try {
+      decision = await aj.protect(req, { 
+        userId: userEmail || req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'anonymous', 
+        requested: isFinal ? 5 : 0 
+      });
+    } catch (rateLimitError) {
+      // If rate limiting fails, log but continue
+      console.warn('Rate limiting check failed, continuing:', rateLimitError);
+    }
  
-    // Check rate limit
+    // Check rate limit - handle gracefully if decision is null
     //@ts-ignore
-    if (decision?.reason?.remaining === 0 && !hasPremiumAccess) {
+    if (decision && decision?.reason?.remaining === 0 && !hasPremiumAccess) {
       return NextResponse.json({
         resp: 'No Free Credits Left, Please upgrade your plan',
         ui: 'limit'
@@ -251,17 +277,35 @@ export async function POST(req: NextRequest) {
     }
 
     // Call OpenAI API with dynamic model
-    const completion = await openai.chat.completions.create({
-      model: config.model, 
-      response_format: { type: 'json_object' },
-      messages: [systemMessage, ...validMessages],
-      temperature: isFinal ? 0.7 : 0.8, // Slightly lower temperature for final plan for consistency
-      max_tokens: isFinal ? 4000 : 500, // More tokens for final plan
-    });
+    let completion;
+    try {
+      completion = await openai.chat.completions.create({
+        model: config.model,
+        response_format: { type: 'json_object' },
+        messages: [systemMessage, ...validMessages],
+        temperature: isFinal ? 0.7 : 0.8, // Slightly lower temperature for final plan for consistency
+        max_tokens: isFinal ? 4000 : 1000, // Increased tokens for partial plan data
+      });
+    } catch (apiError: any) {
+      console.error("OpenAI API call failed:", {
+        message: apiError?.message,
+        status: apiError?.status,
+        code: apiError?.code,
+        response: apiError?.response?.data,
+      });
+      
+      // Re-throw to be caught by outer catch block
+      throw apiError;
+    }
 
     const message = completion.choices[0]?.message;
     
     if (!message || !message.content) {
+      console.error("No message or content in completion:", {
+        hasMessage: !!message,
+        hasContent: !!message?.content,
+        completion: completion
+      });
       return NextResponse.json(
         { 
           resp: 'No response from AI service. Please try again.',
@@ -272,21 +316,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Parse and validate JSON response
+    // Parse and validate JSON response (safe fallback for malformed output)
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(message.content);
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      console.error('Raw response:', message.content);
-      return NextResponse.json(
-        { 
-          resp: 'Invalid response format from AI service. Please try again.',
-          ui: 'none',
-          error: 'PARSE_ERROR'
-        },
-        { status: 500 }
-      );
+      console.error("❌ JSON parse failed:", parseError);
+      console.error("🔹 Raw content snippet:", message.content?.slice(0, 400));
+      console.error("🔹 Full content length:", message.content?.length);
+
+      // Try cleaning up common JSON issues from OpenRouter
+      const cleaned = message.content
+        ?.replace(/```json|```/gi, "") // remove Markdown fences
+        ?.replace(/[\u0000-\u001F]+/g, " ") // remove control chars
+        ?.replace(/,(\s*[}\]])/g, "$1") // remove trailing commas
+        ?.replace(/[\r\n\t]+/g, " ") // remove newlines/tabs
+        ?.trim();
+
+      try {
+        parsedResponse = JSON.parse(cleaned || '{}');
+      } catch (parseError2) {
+        console.error("❌ Still invalid JSON after cleanup:", parseError2);
+        console.error("🔹 Cleaned snippet:", cleaned?.slice(0, 400));
+        return NextResponse.json(
+          {
+            resp: "Invalid response format from AI service. Please try again.",
+            ui: "none",
+            error: "PARSE_ERROR",
+          },
+          { status: 500 }
+        );
+      }
     }
 
     // Validate response structure
@@ -295,7 +355,7 @@ export async function POST(req: NextRequest) {
       if (!parsedResponse.trip_plan) {
         console.error('Missing trip_plan in final response:', parsedResponse);
         return NextResponse.json(
-          { 
+          {
             resp: 'Incomplete trip plan received. Please try again.',
             ui: 'none',
             error: 'INCOMPLETE_RESPONSE',
@@ -310,7 +370,7 @@ export async function POST(req: NextRequest) {
       if (!tripPlan.destination || !tripPlan.origin || !tripPlan.duration) {
         console.error('Missing required fields in trip_plan:', tripPlan);
         return NextResponse.json(
-          { 
+          {
             resp: 'Trip plan missing required information. Please try again.',
             ui: 'none',
             error: 'INCOMPLETE_TRIP_PLAN',
@@ -319,22 +379,27 @@ export async function POST(req: NextRequest) {
           { status: 500 }
         );
       }
-    } else {
-      // For regular responses, ensure resp and ui exist
-      if (!parsedResponse.resp || !parsedResponse.ui) {
-        console.error('Missing resp or ui in response:', parsedResponse);
-        return NextResponse.json(
-          { 
-            resp: parsedResponse.resp || 'Invalid response format.',
-            ui: parsedResponse.ui || 'none',
-            error: 'INCOMPLETE_RESPONSE'
-          },
-          { status: 500 }
-        );
-      }
+    }
+    
+    // For all responses (final or not), ensure resp and ui exist, and handle partial_trip_plan
+    // If isFinal is true and trip_plan exists, we can assume success and inject default resp/ui if missing.
+    if (isFinal && parsedResponse.trip_plan) {
+      // Inject default values if missing, as the FINAL_PROMPT doesn't require them
+      parsedResponse.resp = parsedResponse.resp || 'Trip plan generated successfully.';
+      parsedResponse.ui = parsedResponse.ui || 'final';
+    } else if (!parsedResponse.resp || !parsedResponse.ui) {
+      console.error('Missing resp or ui in response:', parsedResponse);
+      return NextResponse.json(
+        {
+          resp: parsedResponse.resp || 'Invalid response format.',
+          ui: parsedResponse.ui || 'none',
+          error: 'INCOMPLETE_RESPONSE'
+        },
+        { status: 500 }
+      );
     }
 
-    console.log('Successfully processed request:', { 
+    console.log('Successfully processed request:', {
       isFinal, 
       hasResponse: !!parsedResponse,
       hasTripPlan: !!parsedResponse.trip_plan 
@@ -343,15 +408,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsedResponse);
 
   } catch (error: any) {
-    // Log error details for debugging (only in development)
-    if (process.env.NODE_ENV === 'development') {
-      console.error('API route error:', {
-        message: error?.message,
-        status: error?.status,
-        code: error?.code,
-        statusCode: error?.statusCode,
-      });
-    }
+    // Log error details for debugging
+    console.error('API route error:', {
+      message: error?.message,
+      status: error?.status,
+      code: error?.code,
+      statusCode: error?.statusCode,
+      response: error?.response?.data,
+      stack: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
+    });
     
     // Handle specific error types
     if (error instanceof SyntaxError) {
@@ -412,7 +477,9 @@ export async function POST(req: NextRequest) {
     const isAuthError = error?.status === 401 || 
                        error?.statusCode === 401 || 
                        error?.code === 401 ||
-                       error?.response?.status === 401;
+                       error?.response?.status === 401 ||
+                       error?.message?.toLowerCase().includes('authentication') ||
+                       error?.message?.toLowerCase().includes('api key');
     
     if (isAuthError) {
       return NextResponse.json(
@@ -425,13 +492,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check for OpenAI API errors
+    if (error?.error?.message || error?.response?.data?.error) {
+      const openaiError = error?.error || error?.response?.data?.error;
+      return NextResponse.json(
+        { 
+          resp: openaiError?.message || 'AI service error. Please try again.',
+          ui: 'none',
+          error: 'AI_SERVICE_ERROR',
+          details: process.env.NODE_ENV === 'development' ? openaiError : undefined
+        },
+        { status: 500 }
+      );
+    }
+
     // Generic error response
     return NextResponse.json(
       { 
-        resp: 'An error occurred while processing your request. Please try again.',
+        resp: error?.message || 'An error occurred while processing your request. Please try again.',
         ui: 'none',
         error: 'SERVER_ERROR',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details: process.env.NODE_ENV === 'development' ? {
+          message: error?.message,
+          type: error?.constructor?.name,
+        } : undefined
       },
       { status: 500 }
     );
