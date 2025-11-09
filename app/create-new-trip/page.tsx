@@ -27,15 +27,14 @@ function CreateNewTrip() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 p-4 sm:p-6 md:p-8 lg:p-10">
   {/* Left Panel (Chatbox) */}
-  <div className="order-2 md:order-1">
+  <div className="order-1 md:order-1">
     <Chatbox />
   </div>
 
   {/* Right Panel (Itinerary / Map) */}
-  <div className="relative order-1 md:order-2 col-span-1 md:col-span-2 min-h-[350px] sm:min-h-[450px] md:min-h-[550px] lg:min-h-[650px] rounded-xl md:rounded-2xl overflow-hidden">
+  <div className="relative order-2 md:order-2 col-span-1 md:col-span-2 min-h-[350px] sm:min-h-[450px] md:min-h-[550px] lg:min-h-[650px] rounded-xl md:rounded-2xl overflow-hidden">
     {activeIndex === 0 ? <Itinerary /> : <GlobleMap />}
 
-    {/* Floating Toggle Button */}
     <Tooltip>
       <TooltipTrigger className="absolute bottom-5 sm:bottom-7 md:bottom-10 left-1/2 -translate-x-1/2 z-20">
         <Button
