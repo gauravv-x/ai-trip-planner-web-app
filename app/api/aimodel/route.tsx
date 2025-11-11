@@ -31,7 +31,7 @@ async function getOpenRouterConfig() {
   };
 }
 
-const PROMPT = `You are an AI Trip Planner Agent. Your goal is to help the user plan a trip by asking one relevant trip-related question at a time.
+const PROMPT = `You are an AI Trip Planner Agent. Your goal is to help the user plan a trip by asking one relevant trip-related question at a time. 
 Only ask questions about the following details in order, and wait for the user's answer before asking the next:
 1. Starting location (source)
 2. Destination city or country
@@ -40,83 +40,26 @@ Only ask questions about the following details in order, and wait for the user's
 5. Trip duration (number of days)
 6. Travel interests (e.g., adventure, sightseeing, cultural, food, nightlife, relaxation)
 7. Special requirements or preferences (if any)
-
 Do not ask multiple questions at once, and never ask irrelevant questions.
 If any answer is missing or unclear, politely ask the user to clarify before proceeding.
 Always maintain a conversational, interactive style while asking questions.
-
-Along with response also send which UI component to display for generative UI. For example: 'budget', 'groupSize', 'tripDuration', 'final', or 'none'.
-Where 'final' means AI is generating complete final output.
-
-If you have gathered enough information (e.g., destination, duration, budget) but are not yet in the final state, you MUST include a 'partial_trip_plan' object in the response, containing the current known trip details (destination, duration, budget, group_size, origin). This allows the user to see the plan forming in real-time.
-
-Once all required information is collected, generate and return a strict JSON response only (no explanations or extra text) with following strictly JSON only schema:
+Along with response also send which ui component to display for generative UI for example 'budget/groupSize/TripDuration/Final' , where Final means AI generating complete final output
+Once all required information is collected, generate and return a strict JSON response only (no explanations or extra text) with following JSON schema:
 {
-  "resp": "Text Response",
-  "ui": "budget|groupSize|tripDuration|final|none",
-  "partial_trip_plan": {
-    "destination": "string",
-    "duration": "string",
-    "origin": "string",
-    "budget": "string",
-    "group_size": "string"
-  } // Optional, but required if enough info is gathered before final state.
-}
+  resp:'Text Resp',
+  ui:'budget/groupSize/TripDuration/Final'
+}`;
 
-Rules:
-- Use one UI for one specific information only.
-- Use only "source", "groupSize", "budget", "tripDuration", or "final" when UI is needed.
-- Never return explanations, only valid JSON. 
-- Summarize user inputs concisely in the final output.`;
+const FINAL_PROMPT =`Generate Travel Plan with given details, give me Hotels options list with HotelName, 
+Hotel address, Price, Hotel image url, geo coordinates, rating, descriptions and suggest itinerary with placeName, Place Details, Place Image Url, 
+Geo Coordinates, Place address, ticket Pricing, Time travel each of the location, with each day plan with best time to visit in JSON format.
+Output Schema:
 
-const FINAL_PROMPT = `You are an expert travel planner. Based on the conversation history, extract all the trip details the user has provided:
-- Origin/Starting location
-- Destination
-- Group size
-- Budget
-- Trip duration (number of days)
-- Travel interests
-- Any special requirements
-
-Then generate a comprehensive travel plan with the following requirements:
-
-1. Hotels: Provide 3-5 hotel options with:
-   - Real hotel names (use actual hotels from the destination)
-   - Complete addresses
-   - Realistic prices per night based on the budget level
-   - Hotel image URLs (use placeholder URLs like https://images.unsplash.com/photo-[id] or similar)
-   - Accurate geo coordinates (latitude and longitude)
-   - Ratings (between 3.5 and 5.0)
-   - Detailed descriptions
-
-2. Itinerary: Create a day-by-day plan with:
-   - Day number (1, 2, 3, etc.)
-   - Day plan summary
-   - Best time to visit for that day
-   - Activities for each day (2-4 activities per day) with:
-     * Real place names (use actual attractions/places from the destination)
-     * Detailed place descriptions
-     * Place image URLs (use placeholder URLs)
-     * Accurate geo coordinates
-     * Complete addresses
-     * Ticket pricing information
-     * Time to travel between locations
-     * Best time to visit each place
-
-IMPORTANT:
-- Use realistic and accurate data. Research actual places and hotels for the destination.
-- Ensure geo coordinates are accurate for the destination.
-- Make prices realistic based on the budget level (Low/Medium/High).
-- Ensure the itinerary makes logical sense (places should be close to each other on the same day).
-- All image URLs should be valid placeholder URLs.
-- Return ONLY valid JSON, no explanations or additional text.
-
-Output Schema (return this exact structure):
 {
   "trip_plan": {
+    "from": "string",
     "destination": "string",
     "duration": "string",
-    "origin": "string",
     "budget": "string",
     "group_size": "string",
     "hotels": [
@@ -124,39 +67,37 @@ Output Schema (return this exact structure):
         "hotel_name": "string",
         "hotel_address": "string",
         "price_per_night": "string",
-        "hotel_image_url": "string",
+        "rating": "string",
         "geo_coordinates": {
-          "latitude": 0.0,
-          "longitude": 0.0
-        },
-        "rating": 0.0,
-        "description": "string"
-      }
-    ],
-    "itinerary": [
-      {
-        "day": 1,
-        "day_plan": "string",
-        "best_time_to_visit_day": "string",
-        "activities": [
-          {
-            "place_name": "string",
-            "place_details": "string",
-            "place_image_url": "string",
-            "geo_coordinates": {
-              "latitude": 0.0,
-              "longitude": 0.0
-            },
-            "place_address": "string",
-            "ticket_pricing": "string",
-            "time_travel_each_location": "string",
-            "best_time_to_visit": "string"
-          }
-        ]
+          "latitude": "number",
+          "longitude": "number"
+        }
       }
     ]
-  }
-}`;
+  },
+  "itinerary": [
+    {
+      "day": "number",
+      "day_label": "string",
+      "best_time_to_visit_day": "string",
+      "activities": [
+        {
+          "place_name": "string",
+          "place_details": "string",
+          "geo_coordinates": {
+            "latitude": "number",
+            "longitude": "number"
+          },
+          "place_address": "string",
+          "place_image": "string",
+          "ticket_pricing": "string",
+          "time_travel_from_location": "string",
+          "best_time_to_visit": "string"
+        }
+      ]
+    }
+  ]
+}`
 
 export async function POST(req: NextRequest) {
   try {
