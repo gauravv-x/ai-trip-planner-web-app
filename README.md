@@ -31,7 +31,7 @@
 
 | Home Page | Trip Chat Interface | Trip View |
 |------------|---------------------|-----------|
-| ![Home](https://drive.google.com/uc?export=view&id=1_v4GrrcWyxjdhGJdJtMKOXbKcFs2alev) | ![Chat](https://drive.google.com/uc?export=view&id=1dLEBI-mZO9c2xUB9__yCakm4vnyRsFc4) | ![My Trip](https://drive.google.com/uc?export=view&id=1Svd-tqI-Ix0K4DpeEO_A7r2eAJ-5_DAc) |
+| ![Home](https://drive.google.com/uc?export=view&id=1_v4GrrcWyxjdhGJdJtMKOXbKcFs2alev) | ![Chat](https://drive.google.com/uc?export=view&id=1dLEBI-mZO9c2xUB9__yCakm4vnyRsFc4) | ![My Trip](https://drive.google.com/file/d/1nGI0yMlr3sSj0tlRmxq9xALSVDB1qrzc/view?usp=sharing) |
   
 
 ---
